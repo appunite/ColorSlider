@@ -4,6 +4,7 @@ author: Sachin Patel
 author_url: https://gizmosachin.com
 github_url: https://github.com/gizmosachin/ColorSlider
 github-file-prefix: https://github.com/gizmosachin/ColorSlider/tree/master
+readme_path: ./source/README.md
 root-url: https://gizmosachin.github.io/ColorSlider/docs
 xcodebuild-arguments: -scheme,ColorSlider
 module-version: master
