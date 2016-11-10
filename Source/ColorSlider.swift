@@ -86,13 +86,13 @@ import CoreGraphics
     private var drawLayer: CAGradientLayer = CAGradientLayer()
 	
 	/// The hue of the current color.
-    private var hue: CGFloat = 0
+    public var hue: CGFloat = 0
 	
 	/// The saturation of the current color.
-	private var saturation: CGFloat = 1
+	public var saturation: CGFloat = 1
 	
 	/// The brightness of the current color.
-    private var brightness: CGFloat = 1
+    public var brightness: CGFloat = 1
 	
 	// MARK: Preview view
 	/// The color preview view. Only shown if `previewEnabled` is set to `true`.
@@ -171,8 +171,8 @@ import CoreGraphics
         super.beginTrackingWithTouch(touch, withEvent: event)
 		
 		// Reset saturation and brightness
-		saturation = 1.0
-		brightness = 1.0
+		//saturation = 1.0
+		//brightness = 1.0
 		
         updateForTouch(touch, touchInside: true)
 		
@@ -227,16 +227,20 @@ import CoreGraphics
                 if mode == .Hue {
                     hue = value
                     brightness = 1
+                    saturation = 1
                 } else {
                     brightness = value
+                    saturation = 0
                 }
 			} else {
 				let value = max(0, min(1, (locationInView.x / frame.width)))
                 if mode == .Hue {
                     hue = value
                     brightness = 1
+                    saturation = 1
                 } else {
                     brightness = value
+                    saturation = 0
                 }
 			}
             
