@@ -30,7 +30,7 @@ import Foundation
 import CoreGraphics
 
 /// The main ColorSlider class.
-@IBDesignable final public class ColorSlider: UIControl {
+@IBDesignable public class ColorSlider: UIControl {
 	/// The current color of the `ColorSlider`.
 	public var color: UIColor {
 		return UIColor(hue: hue, saturation: saturation, brightness: brightness, alpha: 1)
@@ -40,20 +40,24 @@ import CoreGraphics
 	/// The display orientation of the `ColorSlider`.
 	public enum Orientation {
 		/// Displays `ColorSlider` vertically.
-		case vertical
+		case Vertical
 		
 		/// Displays `ColorSlider` horizontally.
-		case horizontal
+		case Horizontal
 	}
-	
+    
+    public enum PickingMode {
+        case Hue, Saturation, Brightness
+    }
+
 	/// The orientation of the `ColorSlider`. Defaults to `.Vertical`.
-	public var orientation: Orientation = .vertical {
+	public var orientation: Orientation = .Vertical {
 		didSet {
 			switch orientation {
-			case .vertical:
+			case .Vertical:
 				drawLayer.startPoint = CGPoint(x: 0.5, y: 1)
 				drawLayer.endPoint = CGPoint(x: 0.5, y: 0)
-			case .horizontal:
+			case .Horizontal:
 				drawLayer.startPoint = CGPoint(x: 0, y: 0.5)
 				drawLayer.endPoint = CGPoint(x: 1, y: 0.5)
 			}
@@ -71,9 +75,9 @@ import CoreGraphics
 	}
 	
 	/// The color of the ColorSlider's border.
-	@IBInspectable public var borderColor: UIColor = UIColor.black {
+	@IBInspectable public var borderColor: UIColor = UIColor.blackColor() {
 		didSet {
-			drawLayer.borderColor = borderColor.cgColor
+			drawLayer.borderColor = borderColor.CGColor
 		}
 	}
 	
@@ -101,8 +105,14 @@ import CoreGraphics
 	private let previewOffset: CGFloat = 44
 	
 	/// The duration of the preview show or hide animation.
-	private let previewAnimationDuration: TimeInterval = 0.10
+	private let previewAnimationDuration: NSTimeInterval = 0.10
 	
+    public var mode: PickingMode = .Hue {
+        didSet {
+            drawGradient()
+        }
+    }
+    
     // MARK: - Initializers
 	/// Creates a `ColorSlider` with a frame of `CGRect.zero`.
 	public init() {
@@ -124,34 +134,41 @@ import CoreGraphics
 	
 	/// Sets up internal views.
 	public func commonInit() {
-		backgroundColor = UIColor.clear
+		backgroundColor = UIColor.clearColor()
 		
 		drawLayer.masksToBounds = true
 		drawLayer.cornerRadius = 3.0
-		drawLayer.borderColor = borderColor.cgColor
+		drawLayer.borderColor = borderColor.CGColor
 		drawLayer.borderWidth = borderWidth
 		drawLayer.startPoint = CGPoint(x: 0.5, y: 1)
 		drawLayer.endPoint = CGPoint(x: 0.5, y: 0)
 		
 		// Draw gradient
-		let hues: [CGFloat] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-		drawLayer.locations = hues.map({ (hue) -> NSNumber in
-			return NSNumber(floatLiteral: Double(hue))
-		})
-		drawLayer.colors = hues.map({ (hue) -> CGColor in
-			return UIColor(hue: hue, saturation: 1, brightness: 1, alpha: 1).cgColor
-		})
+        drawGradient()
 		
-		previewView.clipsToBounds = true
+        previewView.clipsToBounds = true
 		previewView.layer.cornerRadius = previewDimension / 2
-		previewView.layer.borderColor = UIColor.black.withAlphaComponent(0.3).cgColor
+		previewView.layer.borderColor = UIColor.blackColor().colorWithAlphaComponent(0.3).CGColor
 		previewView.layer.borderWidth = 1.0
 	}
+    
+    public func drawGradient() {
+        // Draw gradient
+        let hues: [CGFloat] = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+        drawLayer.locations = hues
+        drawLayer.colors = hues.map({ (value) -> CGColor in
+            let hue: CGFloat = mode == .Hue ? value : 0.0
+            let saturation: CGFloat = mode == .Hue ? 1.0 : 0.0
+            let brightness: CGFloat = mode == .Hue ? 1.0 : value
+            
+            return UIColor(hue: hue, saturation: saturation, brightness: brightness, alpha: 1).CGColor
+        })
+    }
 	
     // MARK: - UIControl
 	/// Begins tracking a touch when the user drags on the `ColorSlider`.
-    public override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
-        super.beginTracking(touch, with: event)
+    public override func beginTrackingWithTouch(touch: UITouch, withEvent event: UIEvent?) -> Bool {
+        super.beginTrackingWithTouch(touch, withEvent: event)
 		
 		// Reset saturation and brightness
 		saturation = 1.0
@@ -161,37 +178,37 @@ import CoreGraphics
 		
         showPreview(touch)
         
-        sendActions(for: .touchDown)
+        sendActionsForControlEvents(.TouchDown)
         return true
     }
 	
 	/// Continues tracking a touch as the user drags on the `ColorSlider`.
-    public override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
-        super.continueTracking(touch, with: event)
+    public override func continueTrackingWithTouch(touch: UITouch, withEvent event: UIEvent?) -> Bool {
+        super.continueTrackingWithTouch(touch, withEvent: event)
         
-        updateForTouch(touch, touchInside: isTouchInside)
+        updateForTouch(touch, touchInside: touchInside)
 		
         updatePreview(touch)
         
-        sendActions(for: .valueChanged)
+        sendActionsForControlEvents(.ValueChanged)
         return true
     }
 	
 	/// Ends tracking a touch when the user finishes dragging on the `ColorSlider`.
-    public override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
-        super.endTracking(touch, with: event)
+    public override func endTrackingWithTouch(touch: UITouch?, withEvent event: UIEvent?) {
+        super.endTrackingWithTouch(touch, withEvent: event)
 		
 		guard let endTouch = touch else { return }
-        updateForTouch(endTouch, touchInside: isTouchInside)
+        updateForTouch(endTouch, touchInside: touchInside)
 		
         removePreview()
 		
-		sendActions(for: isTouchInside ? .touchUpInside : .touchUpOutside)
+		sendActionsForControlEvents(touchInside ? .TouchUpInside : .TouchUpOutside)
     }
 	
 	/// Cancels tracking a touch when the user cancels dragging on the `ColorSlider`.
-    public override func cancelTracking(with event: UIEvent?) {
-        sendActions(for: .touchCancel)
+    public override func cancelTrackingWithEvent(event: UIEvent?) {
+        sendActionsForControlEvents(.TouchCancel)
     }
 	
 	// MARK: -
@@ -199,28 +216,41 @@ import CoreGraphics
 	///
 	///	- parameter touch: The touch that triggered the update.
 	///	- parameter touchInside: A boolean value that is `true` if `touch` was inside the frame of the `ColorSlider`.
-    private func updateForTouch(_ touch: UITouch, touchInside: Bool) {
+    private func updateForTouch(touch: UITouch, touchInside: Bool) {
         if touchInside {
             // Modify hue at constant brightness
-            let locationInView = touch.location(in: self)
+            let locationInView = touch.locationInView(self)
 			
 			// Calculate based on orientation
-			if orientation == .vertical {
-				hue = 1 - max(0, min(1, (locationInView.y / frame.height)))
+			if orientation == .Vertical {
+				let value = 1 - max(0, min(1, (locationInView.y / frame.height)))
+                if mode == .Hue {
+                    hue = value
+                    brightness = 1
+                } else {
+                    brightness = value
+                }
 			} else {
-				hue = max(0, min(1, (locationInView.x / frame.width)))
+				let value = max(0, min(1, (locationInView.x / frame.width)))
+                if mode == .Hue {
+                    hue = value
+                    brightness = 1
+                } else {
+                    brightness = value
+                }
 			}
-            brightness = 1
+            
 			
         } else {
+            return
             // Modify saturation and brightness for the current hue
 			guard let _superview = superview else { return }
-			let locationInSuperview = touch.location(in: _superview)
+			let locationInSuperview = touch.locationInView(_superview)
 			let horizontalPercent = max(0, min(1, (locationInSuperview.x / _superview.frame.width)))
 			let verticalPercent = max(0, min(1, (locationInSuperview.y / _superview.frame.height)))
 			
 			// Calculate based on orientation
-			if orientation == .vertical {
+			if orientation == .Vertical {
 				saturation = horizontalPercent
 				brightness = 1 - verticalPercent
 			} else {
@@ -231,8 +261,8 @@ import CoreGraphics
     }
 	
 	/// Draws necessary parts of the `ColorSlider`.
-    public override func draw(_ rect: CGRect) {
-        super.draw(rect)
+    public override func drawRect(rect: CGRect) {
+        super.drawRect(rect)
         
 		// Draw pill shape
 		let shortestSide = (bounds.width > bounds.height) ? bounds.height : bounds.width
@@ -241,7 +271,7 @@ import CoreGraphics
         // Draw background
 		drawLayer.frame = bounds
         if drawLayer.superlayer == nil {
-            layer.insertSublayer(drawLayer, at: 0)
+            layer.insertSublayer(drawLayer, atIndex: 0)
         }
     }
     
@@ -249,32 +279,32 @@ import CoreGraphics
 	///	Shows the color preview.
 	///
 	///	- parameter touch: The touch that triggered the update.
-    private func showPreview(_ touch: UITouch) {
+    private func showPreview(touch: UITouch) {
 		if !previewEnabled { return }
 		
         // Initialize preview in proper position, save frame
         updatePreview(touch)
-		previewView.transform = minimizedTransform(for: previewView.frame)
+		previewView.transform = minimizedTransformForRect(previewView.frame)
         
         addSubview(previewView)
-        UIView.animate(withDuration: previewAnimationDuration, delay: 0, options: [.beginFromCurrentState, .curveEaseInOut], animations: { () -> Void in
-            self.previewView.transform = CGAffineTransform.identity
+        UIView.animateWithDuration(previewAnimationDuration, delay: 0, options: [.BeginFromCurrentState, .CurveEaseInOut], animations: { () -> Void in
+            self.previewView.transform = CGAffineTransformIdentity
 		}, completion: nil)
     }
 	
 	///	Updates the color preview.
 	///
 	///	- parameter touch: The touch that triggered the update.
-    private func updatePreview(_ touch: UITouch) {
+    private func updatePreview(touch: UITouch) {
 		if !previewEnabled { return }
 		
 		// Calculate the position of the preview
-		let location = touch.location(in: self)
-		var x = orientation == .vertical ? -previewOffset : location.x
-		var y = orientation == .vertical ? location.y : -previewOffset
+		let location = touch.locationInView(self)
+		var x = orientation == .Vertical ? -previewOffset : location.x
+		var y = orientation == .Vertical ? location.y : -previewOffset
 		
 		// Restrict preview frame to slider bounds
-		if orientation == .vertical {
+		if orientation == .Vertical {
 			y = max(0, location.y - (previewDimension / 2))
 			y = min(bounds.height - previewDimension, y)
 		} else {
@@ -292,11 +322,11 @@ import CoreGraphics
     private func removePreview() {
 		if !previewEnabled || previewView.superview == nil { return }
 		
-		UIView.animate(withDuration: previewAnimationDuration, delay: 0, options: [.beginFromCurrentState, .curveEaseInOut], animations: { () -> Void in
-			self.previewView.transform = self.minimizedTransform(for: self.previewView.frame)
+		UIView.animateWithDuration(previewAnimationDuration, delay: 0, options: [.BeginFromCurrentState, .CurveEaseInOut], animations: { () -> Void in
+			self.previewView.transform = self.minimizedTransformForRect(self.previewView.frame)
 		}, completion: { (completed: Bool) -> Void in
 			self.previewView.removeFromSuperview()
-			self.previewView.transform = CGAffineTransform.identity
+			self.previewView.transform = CGAffineTransformIdentity
 		})
     }
 	
@@ -304,16 +334,16 @@ import CoreGraphics
 	///
 	///	- parameter rect: The actual frame of the preview view.
 	///	- returns: The transform from `rect` to generate the minimized preview view.
-    private func minimizedTransform(for rect: CGRect) -> CGAffineTransform {
+    private func minimizedTransformForRect(rect: CGRect) -> CGAffineTransform {
         let minimizedDimension: CGFloat = 5.0
 		
 		let scale = minimizedDimension / previewDimension
-		let scaleTransform = CGAffineTransform(scaleX: scale, y: scale)
+		let scaleTransform = CGAffineTransformMakeScale(scale, scale)
 		
-		let tx = orientation == .vertical ? previewOffset : 0
-		let ty = orientation == .vertical ? 0 : previewOffset
-		let translationTransform = CGAffineTransform(translationX: tx, y: ty)
+		let tx = orientation == .Vertical ? previewOffset : 0
+		let ty = orientation == .Vertical ? 0 : previewOffset
+		let translationTransform = CGAffineTransformMakeTranslation(tx, ty)
 		
-		return scaleTransform.concatenating(translationTransform)
+		return CGAffineTransformConcat(scaleTransform, translationTransform)
     }
 }
